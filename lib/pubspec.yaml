@@ -1,0 +1,31 @@
+name: comsats_cgpa_predictor
+description: >
+  A professional Flutter Web application that helps COMSATS University
+  students predict semester GPA, predict CGPA, calculate the minimum
+  final-exam marks required for a target grade, and compare "what-if"
+  scenarios. Built with an extensible architecture so additional
+  university grading systems can be plugged in later.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  # NOTE (future expansion):
+  # When multi-university support / accounts / persistence are added,
+  # consider adding:
+  #   provider: ^6.1.2            # if the app outgrows the built-in ChangeNotifier setup
+  #   shared_preferences: ^2.2.3  # for local persistence of scenarios
+  #   go_router: ^14.2.0          # for multi-screen navigation
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
