@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
-git clone https://github.com/flutter/flutter.git --depth 1 -b stable
+# Delete any existing Flutter folder
+rm -rf flutter
 
-export PATH="$(pwd)/flutter/bin:$PATH"
+# Clone Flutter
+git clone https://github.com/flutter/flutter.git --depth 1 -b stable flutter
+
+# Add Flutter to PATH
+export PATH="$PWD/flutter/bin:$PATH"
 
 flutter --version
-dart --version
 
 flutter config --enable-web
 
