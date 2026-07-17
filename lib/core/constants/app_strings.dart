@@ -15,23 +15,46 @@ class AppStrings {
   // Field labels
   static const String midtermLabel = 'Midterm Marks (out of 25)';
 
+  // "Marks per Quiz" / "Marks per Assignment" — configurable raw
+  // scales. Changing these never changes the fixed 10%/15% weightage.
+  static const String marksPerQuizLabel = 'Marks per Quiz';
+  static const String marksPerAssignmentLabel = 'Marks per Assignment';
+  static const String weightageHelperText =
+      'Changing the total marks only rescales the raw marks you enter '
+      'below — the quiz component always contributes 10% and the '
+      'assignment component always contributes 15% to your final '
+      'course total.';
+
   // Quizzes are grouped into their own section; each quiz is out of
-  // 10 raw marks and the component contributes 10% overall.
-  static const String quizSectionTitle =
-      'Quizzes (4 quizzes, each out of 10 marks)';
+  // the configurable "Marks per Quiz" value, and the component always
+  // contributes a fixed 10% overall regardless of that value.
+  static String quizSectionTitle(double marksPerQuiz) =>
+      'Quizzes (4 quizzes, each out of ${_trimZero(marksPerQuiz)} marks)';
   static const String quiz1Label = 'Quiz 1';
   static const String quiz2Label = 'Quiz 2';
   static const String quiz3Label = 'Quiz 3';
   static const String quiz4Label = 'Quiz 4';
 
   // Assignments are grouped into their own section; each assignment is
-  // out of 15 raw marks and the component contributes 15% overall.
-  static const String assignmentSectionTitle =
-      'Assignments (4 assignments, each out of 15 marks)';
+  // out of the configurable "Marks per Assignment" value, and the
+  // component always contributes a fixed 15% overall regardless of
+  // that value.
+  static String assignmentSectionTitle(double marksPerAssignment) =>
+      'Assignments (4 assignments, each out of '
+      '${_trimZero(marksPerAssignment)} marks)';
   static const String assignment1Label = 'Assignment 1';
   static const String assignment2Label = 'Assignment 2';
   static const String assignment3Label = 'Assignment 3';
   static const String assignment4Label = 'Assignment 4';
+
+  /// Formats a whole-number double without a trailing ".0" (e.g. 10
+  /// instead of 10.0), but keeps one decimal place for non-whole
+  /// values (e.g. 7.5).
+  static String _trimZero(double value) {
+    return value.truncateToDouble() == value
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+  }
 
   static const String currentCgpaLabel = 'Current CGPA';
   static const String completedCreditHoursLabel = 'Completed Credit Hours';

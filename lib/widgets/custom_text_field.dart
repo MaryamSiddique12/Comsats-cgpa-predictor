@@ -11,6 +11,7 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?) validator;
   final String? suffixText;
   final bool allowDecimal;
+  final ValueChanged<String>? onChanged;
 
   const CustomTextField({
     super.key,
@@ -19,6 +20,7 @@ class CustomTextField extends StatelessWidget {
     required this.validator,
     this.suffixText,
     this.allowDecimal = true,
+    this.onChanged,
   });
 
   @override
@@ -41,6 +43,7 @@ class CustomTextField extends StatelessWidget {
               FilteringTextInputFormatter.digitsOnly,
           ],
           validator: validator,
+          onChanged: onChanged,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           decoration: InputDecoration(
             suffixText: suffixText,

@@ -8,9 +8,10 @@ import '../models/course_input.dart';
 import 'custom_dropdown.dart';
 import 'custom_text_field.dart';
 
-/// The full input form: midterm, a grouped quizzes section, a grouped
-/// assignments section, CGPA/credit-hour fields, and target grade —
-/// plus Calculate / Reset actions.
+/// The full input form: midterm, a grouped quizzes section (with a
+/// configurable "Marks per Quiz" scale), a grouped assignments section
+/// (with a configurable "Marks per Assignment" scale), CGPA/credit-hour
+/// fields, and target grade — plus Calculate / Reset actions.
 ///
 /// This widget owns its [TextEditingController]s and its [Form] key; it
 /// only ever talks to the outside world through [onCalculate] and
@@ -36,6 +37,16 @@ class _InputSectionState extends State<InputSection> {
   final _formKey = GlobalKey<FormState>();
 
   final _midtermController = TextEditingController();
+
+  // "Marks per Quiz" / "Marks per Assignment" — configurable raw
+  // scales, defaulting to the official 10 and 15. Changing these
+  // never changes the fixed 10%/15% weightage (see CourseInput).
+  final _marksPerQuizController = TextEditingController(
+    text: CourseInput.defaultMarksPerQuiz.toStringAsFixed(0),
+  );
+  final _marksPerAssignmentController = TextEditingController(
+    text: CourseInput.defaultMarksPerAssignment.toStringAsFixed(0),
+  );
 
   final _quiz1Controller = TextEditingController();
   final _quiz2Controller = TextEditingController();
@@ -66,6 +77,8 @@ class _InputSectionState extends State<InputSection> {
   @override
   void dispose() {
     _midtermController.dispose();
+    _marksPerQuizController.dispose();
+    _marksPerAssignmentController.dispose();
     _quiz1Controller.dispose();
     _quiz2Controller.dispose();
     _quiz3Controller.dispose();
@@ -80,6 +93,35 @@ class _InputSectionState extends State<InputSection> {
     super.dispose();
   }
 
+  /// Current "Marks per Quiz" value, falling back to the official
+  /// default if the field is empty/invalid while the user is typing.
+  double get _marksPerQuiz =>
+      double.tryParse(_marksPerQuizController.text.trim()) ??
+      CourseInput.defaultMarksPerQuiz;
+
+  /// Current "Marks per Assignment" value, falling back to the
+  /// official default if the field is empty/invalid while the user is
+  /// typing.
+  double get _marksPerAssignment =>
+      double.tryParse(_marksPerAssignmentController.text.trim()) ??
+      CourseInput.defaultMarksPerAssignment;
+
+  /// Rebuilds the form so the quiz/assignment section titles and their
+  /// validator closures pick up the new scale.
+  ///
+  /// IMPORTANT: this must NOT call `_formKey.currentState?.validate()`.
+  /// `Form.validate()` loops over every FormField and calls its
+  /// `.validate()`, which unconditionally marks that field's internal
+  /// "has the user interacted with this" flag as true — for ALL
+  /// fields, not just this one. That's what was making every empty
+  /// field in the form turn red the first time any field was edited.
+  /// Each field already validates itself correctly on its own
+  /// `AutovalidateMode.onUserInteraction`, so a plain `setState` is
+  /// all that's needed here.
+  void _onScaleChanged(String _) {
+    setState(() {});
+  }
+
   void _handleCalculate() {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
@@ -90,10 +132,12 @@ class _InputSectionState extends State<InputSection> {
       quiz2Marks: Validators.parseOrZero(_quiz2Controller.text),
       quiz3Marks: Validators.parseOrZero(_quiz3Controller.text),
       quiz4Marks: Validators.parseOrZero(_quiz4Controller.text),
+      marksPerQuiz: _marksPerQuiz,
       assignment1Marks: Validators.parseOrZero(_assignment1Controller.text),
       assignment2Marks: Validators.parseOrZero(_assignment2Controller.text),
       assignment3Marks: Validators.parseOrZero(_assignment3Controller.text),
       assignment4Marks: Validators.parseOrZero(_assignment4Controller.text),
+      marksPerAssignment: _marksPerAssignment,
       currentCgpa: Validators.parseOrZero(_currentCgpaController.text),
       completedCreditHours:
           Validators.parseOrZero(_completedCreditHoursController.text),
@@ -108,6 +152,10 @@ class _InputSectionState extends State<InputSection> {
   void _handleReset() {
     _formKey.currentState?.reset();
     _midtermController.clear();
+    _marksPerQuizController.text =
+        CourseInput.defaultMarksPerQuiz.toStringAsFixed(0);
+    _marksPerAssignmentController.text =
+        CourseInput.defaultMarksPerAssignment.toStringAsFixed(0);
     _quiz1Controller.clear();
     _quiz2Controller.clear();
     _quiz3Controller.clear();
@@ -128,6 +176,8 @@ class _InputSectionState extends State<InputSection> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 700;
+    final marksPerQuiz = _marksPerQuiz;
+    final marksPerAssignment = _marksPerAssignment;
 
     return Form(
       key: _formKey,
@@ -148,31 +198,70 @@ class _InputSectionState extends State<InputSection> {
           ),
           const SizedBox(height: 28),
 
+          // --- Configurable scales: Marks per Quiz / Marks per Assignment ---
+          _FieldGrid(
+            isMobile: isMobile,
+            children: [
+              CustomTextField(
+                label: AppStrings.marksPerQuizLabel,
+                controller: _marksPerQuizController,
+                validator: Validators.positiveScale,
+                onChanged: _onScaleChanged,
+              ),
+              CustomTextField(
+                label: AppStrings.marksPerAssignmentLabel,
+                controller: _marksPerAssignmentController,
+                validator: Validators.positiveScale,
+                onChanged: _onScaleChanged,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.info_outline,
+                  color: AppColors.textSecondary, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  AppStrings.weightageHelperText,
+                  style: AppTextStyles.cardCaption,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 28),
+
           // --- Quizzes (grouped section) ---
           _GroupedSection(
-            title: AppStrings.quizSectionTitle,
+            title: AppStrings.quizSectionTitle(marksPerQuiz),
             child: _FieldGrid(
               isMobile: isMobile,
               children: [
                 CustomTextField(
                   label: AppStrings.quiz1Label,
                   controller: _quiz1Controller,
-                  validator: Validators.quizField,
+                  validator: (v) =>
+                      Validators.quizField(v, marksPerQuiz: marksPerQuiz),
                 ),
                 CustomTextField(
                   label: AppStrings.quiz2Label,
                   controller: _quiz2Controller,
-                  validator: Validators.quizField,
+                  validator: (v) =>
+                      Validators.quizField(v, marksPerQuiz: marksPerQuiz),
                 ),
                 CustomTextField(
                   label: AppStrings.quiz3Label,
                   controller: _quiz3Controller,
-                  validator: Validators.quizField,
+                  validator: (v) =>
+                      Validators.quizField(v, marksPerQuiz: marksPerQuiz),
                 ),
                 CustomTextField(
                   label: AppStrings.quiz4Label,
                   controller: _quiz4Controller,
-                  validator: Validators.quizField,
+                  validator: (v) =>
+                      Validators.quizField(v, marksPerQuiz: marksPerQuiz),
                 ),
               ],
             ),
@@ -181,29 +270,41 @@ class _InputSectionState extends State<InputSection> {
 
           // --- Assignments (grouped section) ---
           _GroupedSection(
-            title: AppStrings.assignmentSectionTitle,
+            title: AppStrings.assignmentSectionTitle(marksPerAssignment),
             child: _FieldGrid(
               isMobile: isMobile,
               children: [
                 CustomTextField(
                   label: AppStrings.assignment1Label,
                   controller: _assignment1Controller,
-                  validator: Validators.assignmentField,
+                  validator: (v) => Validators.assignmentField(
+                    v,
+                    marksPerAssignment: marksPerAssignment,
+                  ),
                 ),
                 CustomTextField(
                   label: AppStrings.assignment2Label,
                   controller: _assignment2Controller,
-                  validator: Validators.assignmentField,
+                  validator: (v) => Validators.assignmentField(
+                    v,
+                    marksPerAssignment: marksPerAssignment,
+                  ),
                 ),
                 CustomTextField(
                   label: AppStrings.assignment3Label,
                   controller: _assignment3Controller,
-                  validator: Validators.assignmentField,
+                  validator: (v) => Validators.assignmentField(
+                    v,
+                    marksPerAssignment: marksPerAssignment,
+                  ),
                 ),
                 CustomTextField(
                   label: AppStrings.assignment4Label,
                   controller: _assignment4Controller,
-                  validator: Validators.assignmentField,
+                  validator: (v) => Validators.assignmentField(
+                    v,
+                    marksPerAssignment: marksPerAssignment,
+                  ),
                 ),
               ],
             ),
